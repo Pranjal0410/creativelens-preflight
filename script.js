@@ -68,8 +68,15 @@
   }
 
   function setStatus(el, state, label) {
+    const prevState = el.dataset.state || "";
     el.className = "status-pill" + (state ? " " + state : "");
     el.textContent = label;
+    el.dataset.state = state;
+    if (state && state !== prevState && (state === "passed" || state === "failed")) {
+      el.classList.remove("pop");
+      void el.offsetWidth;
+      el.classList.add("pop");
+    }
   }
 
   // ---------- Line numbers ----------
@@ -505,11 +512,14 @@
     if (!rule) {
       setStatus(logoStatus, "", "—");
       logoReadout.textContent = `${margin}px from the nearest edge.`;
+      marginReadout.classList.remove("pass", "fail");
       return;
     }
     const pass = margin >= rule.threshold;
     setStatus(logoStatus, pass ? "passed" : "failed", pass ? "passed" : "failed");
     logoReadout.textContent = `${margin}px measured · ${rule.threshold}px required`;
+    marginReadout.classList.toggle("pass", pass);
+    marginReadout.classList.toggle("fail", !pass);
   }
 
   function refreshTextStatus() {
@@ -528,17 +538,21 @@
     if (!rule) {
       contrastRequired.hidden = true;
       setStatus(contrastStatus, "", "—");
+      contrastReadout.classList.remove("pass", "fail");
       return;
     }
     contrastRequired.hidden = false;
     contrastRequired.textContent = `required ≥ ${rule.threshold} : 1`;
     if (!textColor || !bgColor) {
       setStatus(contrastStatus, "needs-input", "needs input");
+      contrastReadout.classList.remove("pass", "fail");
       return;
     }
     const ratio = contrastRatio(textColor, bgColor);
     const pass = ratio >= rule.threshold;
     setStatus(contrastStatus, pass ? "passed" : "failed", pass ? "passed" : "failed");
+    contrastReadout.classList.toggle("pass", pass);
+    contrastReadout.classList.toggle("fail", !pass);
   }
 
   function refreshLiveStatuses() {
@@ -634,8 +648,14 @@
       reportEl.appendChild(li);
     });
 
+    const allPass = passCount === rules.length;
     scoreEl.textContent = `${passCount} / ${rules.length} passed`;
-    scoreEl.className = "score " + (passCount === rules.length ? "all-pass" : "has-fail");
+    scoreEl.className = "score " + (allPass ? "all-pass" : "has-fail");
+    if (allPass) {
+      scoreEl.classList.remove("celebrate");
+      void scoreEl.offsetWidth;
+      scoreEl.classList.add("celebrate");
+    }
 
     stepResult.hidden = false;
     stepResult.scrollIntoView({ behavior: "smooth", block: "start" });
