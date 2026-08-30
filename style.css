@@ -44,10 +44,13 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(900px 480px at 50% -8%, rgba(79, 70, 229, 0.12), transparent 65%),
-    radial-gradient(700px 420px at 100% 0%, rgba(79, 70, 229, 0.05), transparent 60%),
-    var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 480px at 50% -8%, rgba(79, 70, 229, 0.14), transparent 65%),
+    radial-gradient(700px 420px at 100% 0%, rgba(79, 70, 229, 0.06), transparent 60%),
+    radial-gradient(rgba(24, 24, 27, 0.07) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 26px 26px;
+  background-repeat: no-repeat, no-repeat, repeat;
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -129,10 +132,12 @@ a {
 
 .workspace {
   max-width: 680px;
+  min-height: 62vh;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1.1rem;
 }
 
