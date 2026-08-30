@@ -617,6 +617,12 @@ a {
   color: var(--slate-light);
 }
 
+.site-footer a {
+  color: var(--indigo);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
