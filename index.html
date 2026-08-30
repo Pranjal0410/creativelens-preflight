@@ -46,18 +46,18 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
           <div class="loading-track"><div class="loading-bar"></div></div>
           <p class="loading-status" id="loading-status">Extracting constraints…</p>
         </div>
-
-        <p class="fine-print" id="compile-note" hidden></p>
-
-        <div class="alert" id="fallback-alert" hidden>
-          <p><strong>Rule extraction unavailable.</strong> Gemini didn't respond, so this fell back to the pattern-based parser — it only recognises fixed phrasing, not arbitrary wording. Your guideline text is untouched.</p>
-          <button class="link-btn" id="retry-compile-btn">Retry</button>
-        </div>
       </div>
 
       <div class="step-summary" id="rules-summary" hidden>
         <p><span class="check-icon">✓</span><span id="rules-summary-text">Rules compiled</span></p>
         <button class="link-btn" id="edit-rules-btn">Edit</button>
+      </div>
+
+      <p class="fine-print" id="compile-note" hidden></p>
+
+      <div class="alert" id="fallback-alert" hidden>
+        <p><strong>Rule extraction unavailable.</strong> Gemini didn't respond, so this fell back to the pattern-based parser — it only recognises fixed phrasing, not arbitrary wording. Your guideline text is untouched.</p>
+        <button class="link-btn" id="retry-compile-btn">Retry</button>
       </div>
 
       <div class="chips" id="chips" hidden></div>
