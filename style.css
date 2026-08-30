@@ -124,6 +124,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 1.75rem;
+  box-shadow: 0 1px 2px rgba(20, 24, 28, 0.04), 0 6px 16px rgba(20, 24, 28, 0.03);
 }
 
 .pane-head {
@@ -494,6 +495,7 @@ a {
   border-radius: 4px;
   background: var(--paper-raised);
   padding: 1.75rem;
+  box-shadow: 0 1px 2px rgba(20, 24, 28, 0.04), 0 6px 16px rgba(20, 24, 28, 0.03);
 }
 
 .verdict-head {
@@ -546,6 +548,7 @@ a {
   padding: 0.9rem 1rem;
   border-radius: 3px;
   border: 1px solid var(--line);
+  animation: fade-in 0.25s ease;
 }
 
 .report li.pass {
@@ -620,5 +623,8 @@ a {
   }
   .btn {
     transition: none;
+  }
+  .report li {
+    animation: none;
   }
 }
