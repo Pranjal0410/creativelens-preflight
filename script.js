@@ -58,61 +58,7 @@
 
   // ---------- Rule compiling ----------
 
-  const DEFAULT_DISCLAIMER_KEYWORDS = [
-    "terms apply",
-    "not typical",
-    "sponsored",
-    "paid partnership",
-    "see terms",
-    "conditions apply",
-    "disclaimer",
-    "results may vary",
-  ];
-
-  function parseRules(text) {
-    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-    const rules = [];
-
-    for (const line of lines) {
-      const lower = line.toLowerCase();
-
-      if (lower.includes("logo") && /\d+\s*px/i.test(line)) {
-        const px = parseInt(line.match(/(\d+)\s*px/i)[1], 10);
-        rules.push({
-          type: "logo",
-          raw: line,
-          threshold: px,
-          label: `LOGO_MARGIN ≥ ${px}px`,
-        });
-        continue;
-      }
-
-      if (lower.includes("contrast") && /\d+(\.\d+)?\s*:\s*1/.test(line)) {
-        const ratio = parseFloat(line.match(/(\d+(\.\d+)?)\s*:\s*1/)[1]);
-        rules.push({
-          type: "contrast",
-          raw: line,
-          threshold: ratio,
-          label: `CONTRAST ≥ ${ratio} : 1`,
-        });
-        continue;
-      }
-
-      if (lower.includes("disclaimer")) {
-        const quoted = [...line.matchAll(/"([^"]+)"/g)].map((m) => m[1].toLowerCase());
-        const keywords = quoted.length ? quoted : DEFAULT_DISCLAIMER_KEYWORDS;
-        rules.push({
-          type: "disclaimer",
-          raw: line,
-          keywords,
-          label: "DISCLAIMER required",
-        });
-        continue;
-      }
-    }
-
-    return rules;
-  }
+  const { parseRules, contrastRatio } = window.RulesLib;
 
   function renderChips(rules) {
     chipsEl.innerHTML = "";
@@ -445,32 +391,6 @@
   });
 
   // ---------- Contrast ----------
-
-  function hexToRgb(hex) {
-    const clean = hex.replace("#", "");
-    const num = parseInt(clean, 16);
-    return {
-      r: (num >> 16) & 255,
-      g: (num >> 8) & 255,
-      b: num & 255,
-    };
-  }
-
-  function relativeLuminance({ r, g, b }) {
-    const channel = (c) => {
-      const s = c / 255;
-      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-    };
-    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-  }
-
-  function contrastRatio(hexA, hexB) {
-    const lumA = relativeLuminance(hexToRgb(hexA));
-    const lumB = relativeLuminance(hexToRgb(hexB));
-    const lighter = Math.max(lumA, lumB);
-    const darker = Math.min(lumA, lumB);
-    return (lighter + 0.05) / (darker + 0.05);
-  }
 
   function updateContrastPreview() {
     if (!textColor || !bgColor) {
