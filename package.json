@@ -1,0 +1,7 @@
+{
+  "name": "creativelens-preflight",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
