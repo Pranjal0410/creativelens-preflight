@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preflight — a rule that actually runs</title>
+  <meta name="description" content="Paste a brand guideline, mark it up on a real creative, and watch it pass or fail. A small working prototype of a policy-enforcement engine." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%2314181C%22/><text x=%2250%22 y=%2266%22 font-size=%2258%22 text-anchor=%22middle%22 fill=%22%23F6F7F5%22 font-family=%22Georgia,serif%22>P</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <p class="eyebrow">Prototype &middot; Rule engine</p>
+      <h1>Turn a guideline into a<br /><em>check that actually runs.</em></h1>
+      <p class="lede">
+        Paste a brand rule below. Mark it up on a real creative on the right. Run the check —
+        it either passes or it doesn't, with the exact number that decided it.
+      </p>
+    </div>
+  </header>
+
+  <main class="workbench">
+
+    <section class="pane rulebook" aria-labelledby="rulebook-title">
+      <div class="pane-head">
+        <span class="pane-num">01</span>
+        <h2 id="rulebook-title">Rulebook</h2>
+        <p class="pane-sub">Write the guideline in plain English.</p>
+      </div>
+
+      <div class="editor">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <textarea id="rules-input" spellcheck="false"
+        >Logo must keep at least 24px clear space from every edge.
+Every ad must include a disclaimer line ("terms apply" or similar).
+Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
+      </div>
+
+      <button class="btn btn-primary" id="compile-btn">Compile rules</button>
+      <p class="fine-print" id="compile-note">Reads the rulebook with Gemini — falls back to pattern matching if that's unreachable.</p>
+
+      <div class="chips" id="chips" hidden></div>
+    </section>
+
+    <section class="pane asset" aria-labelledby="asset-title">
+      <div class="pane-head">
+        <span class="pane-num">02</span>
+        <h2 id="asset-title">Asset</h2>
+        <p class="pane-sub">A real image — uploaded, read, and measured.</p>
+      </div>
+
+      <div class="asset-source">
+        <label class="btn btn-secondary file-btn">
+          Upload a creative
+          <input type="file" id="file-input" accept="image/*" hidden />
+        </label>
+        <button class="btn btn-secondary" id="sample-btn">Use a sample</button>
+      </div>
+
+      <div class="asset-empty" id="asset-empty">
+        <p>Nothing loaded yet — upload a creative or try the sample.</p>
+      </div>
+
+      <div class="creative-wrap" id="creative-wrap" hidden>
+        <canvas id="creative-canvas"></canvas>
+        <div class="logo" id="logo" tabindex="0" role="button" aria-label="Drag to reposition the logo">LOGO</div>
+        <div class="margin-readout" id="margin-readout" hidden></div>
+      </div>
+      <p class="hint" id="drag-hint" hidden>Drag the logo. Its margin to the nearest edge updates live.</p>
+
+      <div class="ocr-block" id="ocr-block" hidden>
+        <div class="ocr-status" id="ocr-status">reading text off the image&hellip;</div>
+        <label for="extracted-text">Text found on the creative <span class="muted">(OCR — correct it if it misread something)</span></label>
+        <textarea id="extracted-text" spellcheck="false"></textarea>
+      </div>
+
+      <div class="controls" id="controls" hidden>
+        <span class="pick-group">
+          <button class="btn btn-tiny" id="pick-text-btn">Pick text colour</button>
+          <span class="swatch" id="text-swatch"></span>
+        </span>
+        <span class="pick-group">
+          <button class="btn btn-tiny" id="pick-bg-btn">Pick background</button>
+          <span class="swatch" id="bg-swatch"></span>
+        </span>
+        <div class="contrast-readout" id="contrast-readout">contrast — : 1</div>
+      </div>
+      <p class="hint" id="pick-hint" hidden>Click the image to sample a pixel.</p>
+
+      <button class="btn btn-primary" id="run-btn" disabled>Run check</button>
+    </section>
+
+  </main>
+
+  <section class="verdict" id="verdict" aria-live="polite">
+    <div class="verdict-empty" id="verdict-empty">
+      <p>Compile the rules, then run the check — the report appears here.</p>
+    </div>
+    <div class="verdict-content" id="verdict-content" hidden>
+      <div class="verdict-head">
+        <span class="pane-num">03</span>
+        <h2>Check results</h2>
+        <div class="score" id="score">0 / 0 passed</div>
+      </div>
+      <ul class="report" id="report"></ul>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>Prototype, not a product.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
