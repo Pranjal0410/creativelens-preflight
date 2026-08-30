@@ -17,6 +17,12 @@
   const editRulesBtn = document.getElementById("edit-rules-btn");
   const compileLoading = document.getElementById("compile-loading");
   const loadingStatus = document.getElementById("loading-status");
+  const fallbackAlert = document.getElementById("fallback-alert");
+  const retryCompileBtn = document.getElementById("retry-compile-btn");
+  const ruleInspector = document.getElementById("rule-inspector");
+  const inspectorHint = document.getElementById("inspector-hint");
+  const unsupportedNote = document.getElementById("unsupported-note");
+  const ocrConfidenceNote = document.getElementById("ocr-confidence-note");
 
   const stepCreative = document.getElementById("step-creative");
   const creativeBody = document.getElementById("creative-body");
@@ -96,21 +102,97 @@
 
   // ---------- Rule compiling ----------
 
+  const METHOD_LABEL = {
+    logo: "Deterministic — measured from cursor position on the canvas",
+    contrast: "Deterministic — WCAG relative-luminance formula on sampled pixels",
+    disclaimer: "Deterministic match against AI-assisted (OCR) or human-corrected text",
+  };
+
+  function buildInspectorFields(rule) {
+    if (rule.type === "logo") {
+      return [
+        ["type", "geometric"],
+        ["operator", "≥"],
+        ["threshold", `${rule.threshold}px`],
+        ["source", `"${rule.raw}"`],
+        ["validation", METHOD_LABEL.logo],
+      ];
+    }
+    if (rule.type === "contrast") {
+      return [
+        ["type", "visual"],
+        ["operator", "≥"],
+        ["threshold", `${rule.threshold}:1`],
+        ["source", `"${rule.raw}"`],
+        ["validation", METHOD_LABEL.contrast],
+      ];
+    }
+    return [
+      ["type", "textual"],
+      ["requirement", "phrase match"],
+      ["matcher", rule.keywords.map((k) => `"${k}"`).join(", ")],
+      ["source", `"${rule.raw}"`],
+      ["validation", METHOD_LABEL.disclaimer],
+    ];
+  }
+
+  function renderInspector(rule) {
+    const title = document.createElement("p");
+    title.className = "inspector-title";
+    title.textContent = rule.label;
+
+    const dl = document.createElement("dl");
+    buildInspectorFields(rule).forEach(([key, value]) => {
+      const dt = document.createElement("dt");
+      dt.textContent = key;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+
+    ruleInspector.innerHTML = "";
+    ruleInspector.appendChild(title);
+    ruleInspector.appendChild(dl);
+    ruleInspector.hidden = false;
+  }
+
+  let inspectedIndex = null;
+
   function renderChips(rules) {
     chipsEl.innerHTML = "";
+    ruleInspector.hidden = true;
+    inspectedIndex = null;
     if (!rules.length) {
       chipsEl.hidden = true;
+      inspectorHint.hidden = true;
       return;
     }
     chipsEl.hidden = false;
+    inspectorHint.hidden = false;
     rules.forEach((rule, i) => {
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = rule.label;
       chip.dataset.index = i;
-      chip.addEventListener("click", () => highlightReportRow(i));
+      chip.addEventListener("click", () => onChipClick(i));
       chipsEl.appendChild(chip);
     });
+  }
+
+  function onChipClick(index) {
+    if (!stepResult.hidden) {
+      highlightReportRow(index);
+      return;
+    }
+    const isReopening = inspectedIndex === index;
+    inspectedIndex = isReopening ? null : index;
+    [...chipsEl.children].forEach((c, i) => c.classList.toggle("active", i === inspectedIndex));
+    if (inspectedIndex === null) {
+      ruleInspector.hidden = true;
+    } else {
+      renderInspector(compiledRules[index]);
+    }
   }
 
   function highlightReportRow(index) {
@@ -120,6 +202,23 @@
     row.classList.remove("flash");
     void row.offsetWidth;
     row.classList.add("flash");
+  }
+
+  const EVIDENCE_TARGET = { logo: "verify-logo", contrast: "verify-contrast", disclaimer: "verify-text" };
+
+  function jumpToEvidence(type) {
+    const block = document.getElementById(EVIDENCE_TARGET[type]);
+    if (!block) return;
+    block.scrollIntoView({ behavior: "smooth", block: "center" });
+    block.classList.remove("flash-highlight");
+    void block.offsetWidth;
+    block.classList.add("flash-highlight");
+  }
+
+  function computeUnsupportedLines(text, rules) {
+    const inputLines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    const matchedRaw = new Set(rules.map((r) => r.raw.trim()));
+    return inputLines.filter((line) => !matchedRaw.has(line));
   }
 
   function normaliseRule(r) {
@@ -176,14 +275,17 @@
 
     compileBtn.disabled = true;
     setStatus(rulesStatus, "processing", "compiling");
+    fallbackAlert.hidden = true;
+    compileNote.hidden = true;
     const cycle = startLoadingCycle();
 
+    let usedFallback = false;
     try {
       compiledRules = await compileWithGemini(text);
       compileNote.textContent = "Compiled by Gemini — reads whatever phrasing you throw at it.";
     } catch (err) {
       compiledRules = parseRules(text);
-      compileNote.textContent = "Gemini unavailable — fell back to the pattern-based parser.";
+      usedFallback = true;
     } finally {
       clearInterval(cycle);
       compileLoading.hidden = true;
@@ -191,8 +293,23 @@
     }
 
     lastCompiledText = text;
-    compileNote.hidden = false;
+    if (usedFallback) {
+      fallbackAlert.hidden = false;
+    } else {
+      compileNote.hidden = false;
+    }
     renderChips(compiledRules);
+
+    const unsupported = computeUnsupportedLines(text, compiledRules);
+    if (unsupported.length) {
+      unsupportedNote.hidden = false;
+      unsupportedNote.innerHTML =
+        `<strong>${unsupported.length} line${unsupported.length === 1 ? "" : "s"} not covered.</strong> ` +
+        `This prototype only checks logo margin, contrast, and disclaimers — the rest need manual review:<br>` +
+        unsupported.map((l) => `&mdash; "${l}"`).join("<br>");
+    } else {
+      unsupportedNote.hidden = true;
+    }
 
     if (compiledRules.length) {
       collapseRulesStep(`${compiledRules.length} rule${compiledRules.length === 1 ? "" : "s"} compiled`);
@@ -205,6 +322,10 @@
   }
 
   compileBtn.addEventListener("click", () => compile());
+  retryCompileBtn.addEventListener("click", () => {
+    lastCompiledText = null;
+    compile();
+  });
 
   // ---------- Image loading (upload or sample) ----------
 
@@ -317,14 +438,21 @@
 
   // ---------- OCR ----------
 
+  const OCR_CONFIDENCE_THRESHOLD = 70;
+
   async function runOcr() {
     setStatus(textStatus, "processing", "reading");
     detectedTextBox.textContent = "reading text off the image…";
+    ocrConfidenceNote.hidden = true;
     try {
       const { data } = await Tesseract.recognize(canvas.toDataURL("image/png"), "eng");
       const text = data.text.trim();
       extractedText.value = text;
       detectedTextBox.textContent = text || "(no text found)";
+      if (typeof data.confidence === "number" && data.confidence < OCR_CONFIDENCE_THRESHOLD) {
+        ocrConfidenceNote.hidden = false;
+        ocrConfidenceNote.textContent = `Low OCR confidence (${Math.round(data.confidence)}%) — check the text below before relying on it.`;
+      }
     } catch (err) {
       detectedTextBox.textContent = "couldn't read the image automatically — edit below to add the copy.";
       extractedText.value = "";
@@ -640,9 +768,15 @@
       source.className = "report-source";
       source.textContent = rule.raw;
 
+      const evidenceBtn = document.createElement("button");
+      evidenceBtn.className = "link-btn evidence-link";
+      evidenceBtn.textContent = "View evidence →";
+      evidenceBtn.addEventListener("click", () => jumpToEvidence(rule.type));
+
       body.appendChild(title);
       body.appendChild(detail);
       body.appendChild(source);
+      body.appendChild(evidenceBtn);
       li.appendChild(icon);
       li.appendChild(body);
       reportEl.appendChild(li);
