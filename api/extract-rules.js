@@ -29,15 +29,59 @@ Return only the JSON array matching the schema. "raw" must be the original line,
 Rulebook:
 `;
 
+// Best-effort per-IP rate limit. Lives only for the lifetime of a warm
+// serverless instance — it resets on cold start and isn't shared across
+// instances. Enough to blunt a casual curl loop, not a real distributed
+// limiter (that would need something like Upstash/Redis).
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 5 * 60 * 1000;
+const hits = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = hits.get(ip);
+  if (!entry || now - entry.windowStart > RATE_WINDOW_MS) {
+    hits.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > RATE_LIMIT;
+}
+
+// Rejects requests whose Origin/Referer clearly belongs to another site
+// (blocks a third-party page embedding a cross-origin fetch to this route).
+// Requests with no Origin/Referer at all (curl, Postman, direct testing)
+// are allowed through — this isn't meant to be unbeatable, just to raise
+// the bar against casual cross-site abuse.
+const ALLOWED_HOST_SUFFIXES = [".vercel.app", "localhost", "127.0.0.1"];
+
+function hasAllowedOrigin(req) {
+  const origin = req.headers.origin || req.headers.referer;
+  if (!origin) return true;
+  try {
+    const host = new URL(origin).host;
+    return ALLOWED_HOST_SUFFIXES.some((suffix) => host.includes(suffix));
+  } catch {
+    return true;
+  }
+}
+
+const MAX_RULES_TEXT_LENGTH = 4000;
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "method not allowed" });
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    res.status(501).json({ error: "no api key configured" });
+  if (!hasAllowedOrigin(req)) {
+    res.status(403).json({ error: "origin not allowed" });
+    return;
+  }
+
+  const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
+  if (isRateLimited(ip)) {
+    res.status(429).json({ error: "rate limited, try again shortly" });
     return;
   }
 
@@ -52,6 +96,17 @@ module.exports = async function handler(req, res) {
 
   if (!rulesText || typeof rulesText !== "string") {
     res.status(400).json({ error: "missing rulesText" });
+    return;
+  }
+
+  if (rulesText.length > MAX_RULES_TEXT_LENGTH) {
+    res.status(413).json({ error: "rulesText too long" });
+    return;
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    res.status(501).json({ error: "no api key configured" });
     return;
   }
 
