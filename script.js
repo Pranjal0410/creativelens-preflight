@@ -83,6 +83,7 @@
 
   let compiledRules = [];
   let lastCompiledText = null;
+  let logoFixTimer = null;
   let textColor = null;
   let bgColor = null;
   let pickMode = null;
@@ -862,7 +863,16 @@
       logo.style.left = `${Math.round((box.width - size) / 2)}px`;
       logo.style.top = `${Math.round((box.height - size) / 2)}px`;
       updateMarginReadout();
-      setTimeout(() => logo.classList.remove("logo-animating"), 650);
+      // The CSS transition means the logo's real on-screen position (and
+      // therefore its measured margin) is genuinely mid-flight for ~650ms —
+      // block Run check until it settles so a fast click can't read a stale,
+      // pre-fix measurement.
+      runBtn.disabled = true;
+      clearTimeout(logoFixTimer);
+      logoFixTimer = setTimeout(() => {
+        logo.classList.remove("logo-animating");
+        runBtn.disabled = false;
+      }, 650);
       jumpToEvidence("logo");
       return true;
     }
