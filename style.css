@@ -13,6 +13,14 @@
   --accent-soft: #eef2ff;
   --accent-border: #c7d2fe;
 
+  --accent2: #0d9488;
+  --accent2-soft: #f0fdfa;
+  --accent2-border: #99f6e4;
+
+  --violet: #7c3aed;
+  --violet-soft: #f5f3ff;
+  --violet-border: #ddd6fe;
+
   --success: #15803d;
   --success-soft: #f0fdf4;
   --success-border: #bbf7d0;
@@ -146,11 +154,32 @@ a {
 .step {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-top: 3px solid var(--border-strong);
   border-radius: 14px;
   padding: 1.4rem 1.5rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 1px rgba(24, 24, 27, 0.04),
     0 10px 26px -12px rgba(24, 24, 27, 0.16);
   animation: fade-in 0.2s ease;
+}
+
+#step-rules {
+  border-top-color: var(--accent);
+}
+
+#step-creative {
+  border-top-color: var(--violet);
+}
+
+#step-verify {
+  border-top-color: var(--accent2);
+}
+
+#step-result.result-pass {
+  border-top-color: var(--success);
+}
+
+#step-result.result-fail {
+  border-top-color: var(--danger);
 }
 
 .step-head {
@@ -397,15 +426,27 @@ a {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #27272a, #18181b);
+  background: linear-gradient(180deg, #6366f1, var(--accent));
+  border-color: var(--accent);
   color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(24, 24, 27, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(79, 70, 229, 0.35);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(180deg, #3f3f46, #232326);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px -4px rgba(24, 24, 27, 0.35);
+  background: linear-gradient(180deg, #7275f5, #4038d1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 14px -4px rgba(79, 70, 229, 0.5);
   transform: translateY(-1px);
+}
+
+.btn-run {
+  background: linear-gradient(180deg, #14b8a6, var(--accent2));
+  border-color: var(--accent2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(13, 148, 136, 0.35);
+}
+
+.btn-run:hover {
+  background: linear-gradient(180deg, #2dd4bf, #0c8377);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 14px -4px rgba(13, 148, 136, 0.5);
 }
 
 .btn-secondary {
@@ -513,9 +554,9 @@ a {
 }
 
 .method-tag.deterministic {
-  background: #f4f4f5;
-  color: var(--text-secondary);
-  border-color: var(--border-strong);
+  background: var(--accent2-soft);
+  color: var(--accent2);
+  border-color: var(--accent2-border);
 }
 
 .method-tag.ai {
@@ -605,6 +646,158 @@ a {
   100% { background: transparent; }
 }
 
+/* ---------- Pipeline track ---------- */
+
+.pipeline-track {
+  background: rgba(255, 255, 255, 0.6);
+  border-bottom: 1px solid var(--border);
+}
+
+.pipeline-track-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0.6rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.pipeline-stage {
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.pipeline-stage.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.pipeline-stage.done {
+  color: var(--success);
+}
+
+.pipeline-arrow {
+  color: var(--border-strong);
+}
+
+/* ---------- Severity + recommendation ---------- */
+
+.severity-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+}
+
+.severity-tag.critical {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.severity-tag.error {
+  background: #fff1e6;
+  color: #b45309;
+}
+
+.severity-tag.warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.report-recommendation {
+  font-size: 0.85rem;
+  color: var(--text);
+  background: #fafafa;
+  border-left: 2px solid var(--accent-border);
+  padding: 0.4rem 0.7rem;
+  margin: 0.5rem 0 0;
+}
+
+/* ---------- Manual-review chips ---------- */
+
+.chip.manual-review {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: var(--warning-border);
+  cursor: default;
+}
+
+/* ---------- Run history ---------- */
+
+.run-history {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.run-history-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.5rem;
+}
+
+.run-history ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.run-history li {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+}
+
+.run-history li.all-pass {
+  color: var(--success);
+}
+
+/* ---------- Loading checklist ---------- */
+
+.loading-checklist {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.loading-checklist .item-done::before {
+  content: "✓ ";
+  color: var(--success);
+}
+
+.loading-checklist .item-active::before {
+  content: "• ";
+  color: var(--accent);
+}
+
+.loading-checklist .item-pending::before {
+  content: "○ ";
+  color: var(--text-tertiary);
+}
+
+.loading-checklist .item-pending {
+  color: var(--text-tertiary);
+}
+
 /* ---------- How it works ---------- */
 
 .how-it-works {
@@ -622,7 +815,14 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
-  margin: 0 0 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.how-it-works-lede {
+  font-size: 0.95rem;
+  color: var(--text);
+  margin: 0 0 1.3rem;
+  max-width: 46ch;
 }
 
 .how-it-works ol {
@@ -644,6 +844,18 @@ a {
   font-size: 0.84rem;
   color: var(--accent);
   padding-top: 0.15rem;
+}
+
+.how-it-works li:nth-child(2) .hiw-num {
+  color: var(--violet);
+}
+
+.how-it-works li:nth-child(3) .hiw-num {
+  color: var(--accent2);
+}
+
+.how-it-works li:nth-child(4) .hiw-num {
+  color: var(--success);
 }
 
 .how-it-works strong {

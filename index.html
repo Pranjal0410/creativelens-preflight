@@ -21,6 +21,18 @@
     <p class="tagline">Check a creative against your brand rules.</p>
   </header>
 
+  <div class="pipeline-track">
+    <div class="pipeline-track-inner">
+      <span class="pipeline-stage active" id="pipeline-policy">Policy</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-stage" id="pipeline-asset">Asset</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-stage" id="pipeline-validation">Validation</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-stage" id="pipeline-results">Results</span>
+    </div>
+  </div>
+
   <main class="workspace">
 
     <!-- STEP 01 — RULES -->
@@ -44,7 +56,11 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
 
         <div class="loading-line" id="compile-loading" hidden>
           <div class="loading-track"><div class="loading-bar"></div></div>
-          <p class="loading-status" id="loading-status">Extracting constraints…</p>
+          <ul class="loading-checklist" id="loading-checklist">
+            <li data-step="0">Reading guideline</li>
+            <li data-step="1">Extracting requirements</li>
+            <li data-step="2">Building checks</li>
+          </ul>
         </div>
       </div>
 
@@ -63,8 +79,6 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
       <div class="chips" id="chips" hidden></div>
       <p class="hint" id="inspector-hint" hidden>Click a rule to inspect how it will be checked.</p>
       <div class="rule-inspector" id="rule-inspector" hidden></div>
-
-      <div class="alert alert-muted" id="unsupported-note" hidden></div>
     </section>
 
     <!-- STEP 02 — CREATIVE -->
@@ -88,6 +102,7 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
         <p><span class="check-icon">✓</span><span id="creative-summary-text">Creative loaded</span></p>
         <button class="link-btn" id="change-creative-btn">Change</button>
       </div>
+      <p class="fine-print" id="asset-meta" hidden></p>
     </section>
 
     <!-- STEP 03 — VERIFY -->
@@ -156,6 +171,10 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
         <div class="score" id="score">0 / 0 passed</div>
       </div>
       <ul class="report" id="report"></ul>
+      <div class="run-history" id="run-history" hidden>
+        <p class="run-history-title">Validation history</p>
+        <ul id="run-history-list"></ul>
+      </div>
     </section>
 
   </main>
@@ -163,6 +182,7 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
   <section class="how-it-works">
     <div class="how-it-works-inner">
       <h2>How this works</h2>
+      <p class="how-it-works-lede">AI where interpretation is needed. Deterministic checks where correctness matters.</p>
       <ol>
         <li><span class="hiw-num">01</span><div><strong>Parse</strong><p>Turn a natural-language guideline into structured rules — AI-assisted, since phrasing varies.</p></div></li>
         <li><span class="hiw-num">02</span><div><strong>Inspect</strong><p>Extract text, geometry, and colour from the creative — OCR is AI-assisted; measurement is not.</p></div></li>

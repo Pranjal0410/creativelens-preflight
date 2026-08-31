@@ -16,12 +16,11 @@
   const rulesSummaryText = document.getElementById("rules-summary-text");
   const editRulesBtn = document.getElementById("edit-rules-btn");
   const compileLoading = document.getElementById("compile-loading");
-  const loadingStatus = document.getElementById("loading-status");
+  const loadingChecklist = document.getElementById("loading-checklist");
   const fallbackAlert = document.getElementById("fallback-alert");
   const retryCompileBtn = document.getElementById("retry-compile-btn");
   const ruleInspector = document.getElementById("rule-inspector");
   const inspectorHint = document.getElementById("inspector-hint");
-  const unsupportedNote = document.getElementById("unsupported-note");
   const ocrConfidenceNote = document.getElementById("ocr-confidence-note");
 
   const stepCreative = document.getElementById("step-creative");
@@ -31,6 +30,7 @@
   const changeCreativeBtn = document.getElementById("change-creative-btn");
   const fileInput = document.getElementById("file-input");
   const sampleBtn = document.getElementById("sample-btn");
+  const assetMeta = document.getElementById("asset-meta");
 
   const stepVerify = document.getElementById("step-verify");
   const creativeWrap = document.getElementById("creative-wrap");
@@ -61,6 +61,8 @@
   const stepResult = document.getElementById("step-result");
   const scoreEl = document.getElementById("score");
   const reportEl = document.getElementById("report");
+  const runHistoryEl = document.getElementById("run-history");
+  const runHistoryList = document.getElementById("run-history-list");
 
   let compiledRules = [];
   let lastCompiledText = null;
@@ -68,6 +70,20 @@
   let bgColor = null;
   let pickMode = null;
   let imageReady = false;
+  let runHistory = [];
+
+  // ---------- Pipeline stage indicator ----------
+
+  function setPipelineStage(stage) {
+    const order = ["policy", "asset", "validation", "results"];
+    const idx = order.indexOf(stage);
+    order.forEach((s, i) => {
+      const el = document.getElementById(`pipeline-${s}`);
+      el.classList.remove("active", "done");
+      if (i < idx) el.classList.add("done");
+      else if (i === idx) el.classList.add("active");
+    });
+  }
 
   function getRule(type) {
     return compiledRules.find((r) => r.type === type);
@@ -159,23 +175,31 @@
 
   let inspectedIndex = null;
 
-  function renderChips(rules) {
+  function renderChips(rules, unsupported) {
     chipsEl.innerHTML = "";
     ruleInspector.hidden = true;
     inspectedIndex = null;
-    if (!rules.length) {
+    if (!rules.length && !(unsupported && unsupported.length)) {
       chipsEl.hidden = true;
       inspectorHint.hidden = true;
       return;
     }
     chipsEl.hidden = false;
-    inspectorHint.hidden = false;
+    inspectorHint.hidden = !rules.length;
     rules.forEach((rule, i) => {
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = rule.label;
       chip.dataset.index = i;
       chip.addEventListener("click", () => onChipClick(i));
+      chipsEl.appendChild(chip);
+    });
+    (unsupported || []).forEach((line) => {
+      const chip = document.createElement("span");
+      chip.className = "chip manual-review";
+      const truncated = line.length > 34 ? line.slice(0, 34).trim() + "…" : line;
+      chip.title = `"${line}" — not automatically checkable in this prototype`;
+      chip.textContent = `MANUAL REVIEW · "${truncated}"`;
       chipsEl.appendChild(chip);
     });
   }
@@ -240,16 +264,25 @@
     return data.rules.map(normaliseRule);
   }
 
-  const LOADING_MESSAGES = ["Extracting constraints…", "Normalising rule language…", "Building checks…"];
+  function setChecklistStep(activeIndex) {
+    [...loadingChecklist.children].forEach((li, i) => {
+      li.className = i < activeIndex ? "item-done" : i === activeIndex ? "item-active" : "item-pending";
+    });
+  }
 
   function startLoadingCycle() {
     compileLoading.hidden = false;
-    let i = 0;
-    loadingStatus.textContent = LOADING_MESSAGES[0];
-    return setInterval(() => {
-      i = (i + 1) % LOADING_MESSAGES.length;
-      loadingStatus.textContent = LOADING_MESSAGES[i];
-    }, 900);
+    setChecklistStep(0);
+    const timers = [
+      setTimeout(() => setChecklistStep(1), 600),
+      setTimeout(() => setChecklistStep(2), 1800),
+    ];
+    return { timers };
+  }
+
+  function stopLoadingCycle(cycle) {
+    cycle.timers.forEach(clearTimeout);
+    setChecklistStep(3);
   }
 
   function collapseRulesStep(summaryText) {
@@ -264,6 +297,7 @@
     rulesBody.hidden = false;
     rulesSummary.hidden = true;
     setStatus(rulesStatus, "", "ready");
+    setPipelineStage("policy");
   });
 
   async function compile() {
@@ -287,7 +321,7 @@
       compiledRules = parseRules(text);
       usedFallback = true;
     } finally {
-      clearInterval(cycle);
+      stopLoadingCycle(cycle);
       compileLoading.hidden = true;
       compileBtn.disabled = false;
     }
@@ -298,21 +332,13 @@
     } else {
       compileNote.hidden = false;
     }
-    renderChips(compiledRules);
 
     const unsupported = computeUnsupportedLines(text, compiledRules);
-    if (unsupported.length) {
-      unsupportedNote.hidden = false;
-      unsupportedNote.innerHTML =
-        `<strong>${unsupported.length} line${unsupported.length === 1 ? "" : "s"} not covered.</strong> ` +
-        `This prototype only checks logo margin, contrast, and disclaimers — the rest need manual review:<br>` +
-        unsupported.map((l) => `&mdash; "${l}"`).join("<br>");
-    } else {
-      unsupportedNote.hidden = true;
-    }
+    renderChips(compiledRules, unsupported);
 
     if (compiledRules.length) {
       collapseRulesStep(`${compiledRules.length} rule${compiledRules.length === 1 ? "" : "s"} compiled`);
+      setPipelineStage("asset");
     } else {
       setStatus(rulesStatus, "failed", "no rules found");
     }
@@ -362,18 +388,27 @@
     detectedTextBox.hidden = false;
     editTextBtn.hidden = true;
     stepResult.hidden = true;
+    runHistory = [];
+    runHistoryEl.hidden = true;
+    runHistoryList.innerHTML = "";
+    assetMeta.hidden = true;
   }
 
-  function onImageLoaded(label) {
+  function onImageLoaded(label, meta) {
     resetVerifyState();
     creativeBody.hidden = true;
     creativeSummary.hidden = false;
     creativeSummaryText.textContent = label;
+    if (meta) {
+      assetMeta.hidden = false;
+      assetMeta.textContent = `${meta.width} × ${meta.height}px${meta.type ? " · " + meta.type : ""}`;
+    }
     stepVerify.hidden = false;
     imageReady = true;
     placeLogoInitial();
     runOcr();
     refreshLiveStatuses();
+    setPipelineStage("validation");
     stepVerify.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -382,13 +417,14 @@
     creativeSummary.hidden = true;
     stepVerify.hidden = true;
     imageReady = false;
+    setPipelineStage("asset");
   });
 
-  function loadImageFromSrc(src, label) {
+  function loadImageFromSrc(src, label, type) {
     const img = new Image();
     img.onload = () => {
       drawImageToCanvas(img);
-      onImageLoaded(label);
+      onImageLoaded(label, { width: img.naturalWidth, height: img.naturalHeight, type });
     };
     img.src = src;
   }
@@ -397,7 +433,7 @@
     const file = fileInput.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => loadImageFromSrc(reader.result, file.name);
+    reader.onload = () => loadImageFromSrc(reader.result, file.name, file.type || "image");
     reader.readAsDataURL(file);
   });
 
@@ -429,7 +465,7 @@
     const img = new Image();
     img.onload = () => {
       drawImageToCanvas(img);
-      onImageLoaded("Sample banner");
+      onImageLoaded("Sample banner", { width: img.naturalWidth, height: img.naturalHeight, type: "image/png" });
       setColor("text", sample.textColor);
       setColor("bg", sample.bgColor);
     };
@@ -698,6 +734,12 @@
     disclaimer: "Disclaimer",
   };
 
+  const SEVERITY = {
+    logo: "error",
+    contrast: "warning",
+    disclaimer: "critical",
+  };
+
   function evaluateRule(rule) {
     if (rule.type === "logo") {
       const margin = currentMargin();
@@ -707,12 +749,17 @@
         detail: pass
           ? `${margin}px measured — clears the ${rule.threshold}px minimum`
           : `${margin}px measured — needs ${rule.threshold}px`,
+        recommendation: pass ? null : `Move the logo at least ${rule.threshold - margin}px further from the nearest edge.`,
       };
     }
 
     if (rule.type === "contrast") {
       if (!textColor || !bgColor) {
-        return { pass: false, detail: "pick a text colour and a background colour on the image first" };
+        return {
+          pass: false,
+          detail: "pick a text colour and a background colour on the image first",
+          recommendation: "Use the Contrast panel above to sample the text and background colours.",
+        };
       }
       const ratio = contrastRatio(textColor, bgColor);
       const pass = ratio >= rule.threshold;
@@ -721,6 +768,9 @@
         detail: pass
           ? `${ratio.toFixed(1)}:1 measured — clears the ${rule.threshold}:1 minimum`
           : `${ratio.toFixed(1)}:1 measured — needs ${rule.threshold}:1`,
+        recommendation: pass
+          ? null
+          : `Darken the text or lighten the background until the ratio reaches at least ${rule.threshold}:1.`,
       };
     }
 
@@ -732,10 +782,11 @@
         detail: match
           ? `found "${match}" in the text read off the creative`
           : "no disclaimer phrase found in the text read off the creative",
+        recommendation: match ? null : `Add one of the required phrases (e.g. "${rule.keywords[0]}") to the creative's copy.`,
       };
     }
 
-    return { pass: false, detail: "unrecognised rule" };
+    return { pass: false, detail: "unrecognised rule", recommendation: null };
   }
 
   function renderReport(rules, results) {
@@ -758,7 +809,13 @@
 
       const title = document.createElement("p");
       title.className = "report-title";
-      title.textContent = FRIENDLY_NAME[rule.type] || rule.type;
+      if (!result.pass) {
+        const severity = document.createElement("span");
+        severity.className = `severity-tag ${SEVERITY[rule.type] || "error"}`;
+        severity.textContent = SEVERITY[rule.type] || "error";
+        title.appendChild(severity);
+      }
+      title.appendChild(document.createTextNode(FRIENDLY_NAME[rule.type] || rule.type));
 
       const detail = document.createElement("p");
       detail.className = "report-detail";
@@ -775,6 +832,12 @@
 
       body.appendChild(title);
       body.appendChild(detail);
+      if (!result.pass && result.recommendation) {
+        const rec = document.createElement("p");
+        rec.className = "report-recommendation";
+        rec.textContent = result.recommendation;
+        body.appendChild(rec);
+      }
       body.appendChild(source);
       body.appendChild(evidenceBtn);
       li.appendChild(icon);
@@ -785,6 +848,8 @@
     const allPass = passCount === rules.length;
     scoreEl.textContent = `${passCount} / ${rules.length} passed`;
     scoreEl.className = "score " + (allPass ? "all-pass" : "has-fail");
+    stepResult.classList.toggle("result-pass", allPass);
+    stepResult.classList.toggle("result-fail", !allPass);
     if (allPass) {
       scoreEl.classList.remove("celebrate");
       void scoreEl.offsetWidth;
@@ -795,6 +860,25 @@
     stepResult.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function logRun(passCount, total) {
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    runHistory.push({ run: runHistory.length + 1, passCount, total, time });
+
+    runHistoryList.innerHTML = "";
+    runHistory.forEach((entry) => {
+      const li = document.createElement("li");
+      if (entry.passCount === entry.total) li.className = "all-pass";
+      const left = document.createElement("span");
+      left.textContent = `Run ${entry.run} · ${entry.time}`;
+      const right = document.createElement("span");
+      right.textContent = `${entry.passCount} / ${entry.total} passed${entry.passCount === entry.total ? " ✓" : ""}`;
+      li.appendChild(left);
+      li.appendChild(right);
+      runHistoryList.appendChild(li);
+    });
+    runHistoryEl.hidden = runHistory.length < 2;
+  }
+
   async function runCheck() {
     if (!imageReady) return;
     if (!compiledRules.length) await compile();
@@ -802,6 +886,8 @@
 
     const results = compiledRules.map(evaluateRule);
     renderReport(compiledRules, results);
+    logRun(results.filter((r) => r.pass).length, results.length);
+    setPipelineStage("results");
   }
 
   runBtn.addEventListener("click", () => runCheck());
