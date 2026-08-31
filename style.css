@@ -318,9 +318,8 @@ a {
   line-height: 1.6;
   color: var(--text);
   background: transparent;
-  white-space: pre;
-  overflow-x: auto;
-  overflow-wrap: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 #rules-input:focus {
