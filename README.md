@@ -1,6 +1,6 @@
 # Preflight
 
-A small working prototype of a rule-enforcement engine: paste a brand guideline, mark it up on a real creative, run the check, get a pass/fail with the exact number that decided it.
+A small working prototype of a rule-enforcement engine: paste a brand guideline, mark it up on a real creative, run the check, see exactly why it failed, fix what's fixable, and re-run until it's ready to ship.
 
 Live: https://creativelens-preflight.vercel.app
 
@@ -10,12 +10,14 @@ Built to explore the same problem [CreativeLens](https://creativelens.ai) solves
 
 ## What it actually does
 
-- **Rule compiling** — the rulebook text is sent to Gemini (server-side, via `/api/extract-rules`), which extracts structured rules (`logo` margin, `contrast` ratio, `disclaimer` phrase) from arbitrary phrasing. If Gemini's unreachable, it falls back to a regex-based parser so the page never just breaks.
+- **Rule compiling** — the rulebook text is sent to Gemini (server-side, via `/api/extract-rules`), which extracts structured rules (`logo` margin, `contrast` ratio, `disclaimer` phrase) from arbitrary phrasing. If Gemini's unreachable, it falls back to a regex-based parser so the page never just breaks. When the real call succeeds, the Rules step shows it plainly: `AI interpreted → Deterministic validation` — the two steps are genuinely different code paths, not the same logic narrated two ways.
 - **OCR** — Tesseract.js reads the text directly off the uploaded image's pixels, client-side. Editable, since OCR isn't perfect — it's reliable on bold, high-contrast ad copy (the bundled sample) and noticeably weaker on dense, small-text UI screenshots. That's a real limitation of a lightweight client-side OCR engine, not a bug; the correction box exists because of it.
 - **Logo margin** — drag the logo overlay; margin to the nearest edge is computed live from real DOM geometry.
 - **Contrast** — click two real pixels on the canvas (text, background), contrast ratio computed with the actual WCAG relative-luminance formula.
+- **Evidence, not just a verdict** — every result expands into `Rule → Measured → Required → Method → Decision`, so a failure points at the exact number that caused it instead of a bare pass/fail.
+- **Fix → Re-run → Ready to Ship** — failing rules get a real corrective action, not a simulated one: a logo-margin failure repositions the logo overlay to a genuinely valid spot; a disclaimer failure appends the actual required phrase to the editable extracted text. Contrast gets a "Show me →" instead of an auto-fix, on purpose — inventing a plausible-looking passing color pair would mean fabricating a result, so it points at the picker instead of pretending to solve it. Re-running after a fix re-measures for real; the verdict banner, progress bar, and per-rule issue chips all reflect the actual new state.
 
-Everything measured is measured for real. Nothing here is a canned result.
+Everything measured is measured for real. Nothing here is a canned result — including the fixes.
 
 ## Architecture
 
