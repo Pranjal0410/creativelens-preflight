@@ -175,6 +175,9 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
         <p class="run-history-title">Validation history</p>
         <ul id="run-history-list"></ul>
       </div>
+
+      <button class="link-btn" id="run-details-toggle" hidden>View run details →</button>
+      <div class="rule-inspector run-details" id="run-details" hidden></div>
     </section>
 
   </main>
@@ -189,6 +192,26 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
         <li><span class="hiw-num">03</span><div><strong>Validate</strong><p>Run each rule as a deterministic check — a threshold comparison, not a model's opinion.</p></div></li>
         <li><span class="hiw-num">04</span><div><strong>Explain</strong><p>Every result carries the measurement that produced it, not just pass or fail.</p></div></li>
       </ol>
+
+      <div class="system-notes">
+        <div class="system-notes-col">
+          <h3>Detection coverage</h3>
+          <ul class="coverage-list">
+            <li><span class="cov-icon cov-full">✓</span>Text extraction — OCR</li>
+            <li><span class="cov-icon cov-full">✓</span>Contrast measurement — deterministic</li>
+            <li><span class="cov-icon cov-full">✓</span>Logo geometry — deterministic, once positioned</li>
+            <li><span class="cov-icon cov-partial">◐</span>Logo recognition — manual region selection, not automatic yet</li>
+          </ul>
+        </div>
+        <div class="system-notes-col">
+          <h3>Next</h3>
+          <ul class="roadmap-list">
+            <li><strong>Automatic region detection</strong><p>Replace manual logo/text selection with vision-based bounding boxes, keeping manual selection as the fallback when confidence is low.</p></li>
+            <li><strong>Confidence scoring</strong><p>Surface a real confidence value on every AI-assisted step, not just OCR.</p></li>
+            <li><strong>Rule-level audit trail</strong><p>Persist each run so a validation decision can be reproduced later, not just viewed once.</p></li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 

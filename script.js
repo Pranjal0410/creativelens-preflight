@@ -63,6 +63,8 @@
   const reportEl = document.getElementById("report");
   const runHistoryEl = document.getElementById("run-history");
   const runHistoryList = document.getElementById("run-history-list");
+  const runDetailsToggle = document.getElementById("run-details-toggle");
+  const runDetails = document.getElementById("run-details");
 
   let compiledRules = [];
   let lastCompiledText = null;
@@ -71,6 +73,7 @@
   let pickMode = null;
   let imageReady = false;
   let runHistory = [];
+  const runStats = { compileMs: null, usedFallback: false, ocrMs: null, assetLabel: null, assetMeta: null };
 
   // ---------- Pipeline stage indicator ----------
 
@@ -314,13 +317,16 @@
     const cycle = startLoadingCycle();
 
     let usedFallback = false;
+    const compileStart = performance.now();
     try {
       compiledRules = await compileWithGemini(text);
-      compileNote.textContent = "Compiled by Gemini — reads whatever phrasing you throw at it.";
+      compileNote.textContent = "Natural-language policy → structured checks.";
     } catch (err) {
       compiledRules = parseRules(text);
       usedFallback = true;
     } finally {
+      runStats.compileMs = Math.round(performance.now() - compileStart);
+      runStats.usedFallback = usedFallback;
       stopLoadingCycle(cycle);
       compileLoading.hidden = true;
       compileBtn.disabled = false;
@@ -392,6 +398,10 @@
     runHistoryEl.hidden = true;
     runHistoryList.innerHTML = "";
     assetMeta.hidden = true;
+    runDetailsToggle.hidden = true;
+    runDetails.hidden = true;
+    runDetails.innerHTML = "";
+    runStats.ocrMs = null;
   }
 
   function onImageLoaded(label, meta) {
@@ -403,6 +413,8 @@
       assetMeta.hidden = false;
       assetMeta.textContent = `${meta.width} × ${meta.height}px${meta.type ? " · " + meta.type : ""}`;
     }
+    runStats.assetLabel = label;
+    runStats.assetMeta = meta;
     stepVerify.hidden = false;
     imageReady = true;
     placeLogoInitial();
@@ -480,6 +492,7 @@
     setStatus(textStatus, "processing", "reading");
     detectedTextBox.textContent = "reading text off the image…";
     ocrConfidenceNote.hidden = true;
+    const ocrStart = performance.now();
     try {
       const { data } = await Tesseract.recognize(canvas.toDataURL("image/png"), "eng");
       const text = data.text.trim();
@@ -493,6 +506,7 @@
       detectedTextBox.textContent = "couldn't read the image automatically — edit below to add the copy.";
       extractedText.value = "";
     }
+    runStats.ocrMs = Math.round(performance.now() - ocrStart);
     editTextBtn.hidden = false;
     refreshLiveStatuses();
   }
@@ -750,6 +764,9 @@
           ? `${margin}px measured — clears the ${rule.threshold}px minimum`
           : `${margin}px measured — needs ${rule.threshold}px`,
         recommendation: pass ? null : `Move the logo at least ${rule.threshold - margin}px further from the nearest edge.`,
+        expected: `≥ ${rule.threshold}px`,
+        measured: `${margin}px`,
+        method: METHOD_LABEL.logo,
       };
     }
 
@@ -759,6 +776,9 @@
           pass: false,
           detail: "pick a text colour and a background colour on the image first",
           recommendation: "Use the Contrast panel above to sample the text and background colours.",
+          expected: `≥ ${rule.threshold}:1`,
+          measured: "not sampled yet",
+          method: METHOD_LABEL.contrast,
         };
       }
       const ratio = contrastRatio(textColor, bgColor);
@@ -771,6 +791,9 @@
         recommendation: pass
           ? null
           : `Darken the text or lighten the background until the ratio reaches at least ${rule.threshold}:1.`,
+        expected: `≥ ${rule.threshold}:1`,
+        measured: `${ratio.toFixed(1)}:1`,
+        method: METHOD_LABEL.contrast,
       };
     }
 
@@ -783,10 +806,13 @@
           ? `found "${match}" in the text read off the creative`
           : "no disclaimer phrase found in the text read off the creative",
         recommendation: match ? null : `Add one of the required phrases (e.g. "${rule.keywords[0]}") to the creative's copy.`,
+        expected: rule.keywords.map((k) => `"${k}"`).join(" or "),
+        measured: match ? `found "${match}"` : "no match in OCR text",
+        method: METHOD_LABEL.disclaimer,
       };
     }
 
-    return { pass: false, detail: "unrecognised rule", recommendation: null };
+    return { pass: false, detail: "unrecognised rule", recommendation: null, expected: "—", measured: "—", method: "—" };
   }
 
   function renderReport(rules, results) {
@@ -825,10 +851,31 @@
       source.className = "report-source";
       source.textContent = rule.raw;
 
+      const evidencePanel = document.createElement("dl");
+      evidencePanel.className = "evidence-panel";
+      evidencePanel.hidden = true;
+      [
+        ["Expected", result.expected],
+        ["Measured", result.measured],
+        ["Method", result.method],
+        ["Confidence", rule.type === "disclaimer" ? "Deterministic match; source text is AI-assisted (OCR)" : "Deterministic"],
+      ].forEach(([key, value]) => {
+        const dt = document.createElement("dt");
+        dt.textContent = key;
+        const dd = document.createElement("dd");
+        dd.textContent = value;
+        evidencePanel.appendChild(dt);
+        evidencePanel.appendChild(dd);
+      });
+
       const evidenceBtn = document.createElement("button");
       evidenceBtn.className = "link-btn evidence-link";
       evidenceBtn.textContent = "View evidence →";
-      evidenceBtn.addEventListener("click", () => jumpToEvidence(rule.type));
+      evidenceBtn.addEventListener("click", () => {
+        evidencePanel.hidden = !evidencePanel.hidden;
+        evidenceBtn.textContent = evidencePanel.hidden ? "View evidence →" : "Hide evidence";
+        if (!evidencePanel.hidden) jumpToEvidence(rule.type);
+      });
 
       body.appendChild(title);
       body.appendChild(detail);
@@ -840,6 +887,7 @@
       }
       body.appendChild(source);
       body.appendChild(evidenceBtn);
+      body.appendChild(evidencePanel);
       li.appendChild(icon);
       li.appendChild(body);
       reportEl.appendChild(li);
@@ -879,6 +927,39 @@
     runHistoryEl.hidden = runHistory.length < 2;
   }
 
+  function renderRunDetails(results) {
+    const passCount = results.filter((r) => r.pass).length;
+    const fields = [
+      ["Policy", `${compiledRules.length} rule${compiledRules.length === 1 ? "" : "s"} extracted${runStats.usedFallback ? " (pattern fallback)" : " (Gemini)"}`],
+      ["Asset", `${runStats.assetLabel || "—"}${runStats.assetMeta ? ` · ${runStats.assetMeta.width} × ${runStats.assetMeta.height}px` : ""}`],
+      ["Rule extraction", runStats.compileMs !== null ? `${runStats.compileMs}ms` : "cached, not re-run"],
+      ["OCR", runStats.ocrMs !== null ? `${runStats.ocrMs}ms` : "not run"],
+      ["Checks evaluated", `${results.length} — ${passCount} passed, ${results.length - passCount} failed`],
+      ["Rule parser", runStats.usedFallback ? "Gemini unavailable → regex fallback used" : "Gemini (falls back to regex if unreachable)"],
+      ["Rate limiting", "20 requests / 5 minutes / IP, best-effort in-memory"],
+      ["Persistence", "None — state resets on reload, this run's history is in-memory only"],
+      ["Known limitation", "Logo detection is manual region selection, not automatic vision detection"],
+    ];
+
+    runDetails.innerHTML = "";
+    const dl = document.createElement("dl");
+    fields.forEach(([key, value]) => {
+      const dt = document.createElement("dt");
+      dt.textContent = key;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+    runDetails.appendChild(dl);
+    runDetailsToggle.hidden = false;
+  }
+
+  runDetailsToggle.addEventListener("click", () => {
+    runDetails.hidden = !runDetails.hidden;
+    runDetailsToggle.textContent = runDetails.hidden ? "View run details →" : "Hide run details";
+  });
+
   async function runCheck() {
     if (!imageReady) return;
     if (!compiledRules.length) await compile();
@@ -887,6 +968,7 @@
     const results = compiledRules.map(evaluateRule);
     renderReport(compiledRules, results);
     logRun(results.filter((r) => r.pass).length, results.length);
+    renderRunDetails(results);
     setPipelineStage("results");
   }
 
