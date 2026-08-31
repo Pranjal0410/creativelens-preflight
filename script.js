@@ -65,6 +65,7 @@
   const verdictBanner = document.getElementById("verdict-banner");
   const verdictHeadline = document.getElementById("verdict-headline");
   const verdictSub = document.getElementById("verdict-sub");
+  const verdictScore = document.getElementById("verdict-score");
   const verdictProgressBar = document.getElementById("verdict-progress-bar");
   const issueNav = document.getElementById("issue-nav");
   const reportEl = document.getElementById("report");
@@ -353,7 +354,11 @@
     const compileStart = performance.now();
     try {
       compiledRules = await compileWithGemini(text);
-      compileNote.textContent = "Natural-language policy → structured checks.";
+      compileNote.className = "ai-flow";
+      compileNote.innerHTML =
+        '<span class="method-tag ai">AI interpreted</span>' +
+        '<span class="ai-flow-arrow">→</span>' +
+        '<span class="method-tag deterministic">Deterministic validation</span>';
     } catch (err) {
       compiledRules = parseRules(text);
       usedFallback = true;
@@ -853,9 +858,11 @@
     if (rule.type === "logo") {
       const box = creativeWrap.getBoundingClientRect();
       const size = logo.offsetWidth;
+      logo.classList.add("logo-animating");
       logo.style.left = `${Math.round((box.width - size) / 2)}px`;
       logo.style.top = `${Math.round((box.height - size) / 2)}px`;
       updateMarginReadout();
+      setTimeout(() => logo.classList.remove("logo-animating"), 650);
       jumpToEvidence("logo");
       return true;
     }
@@ -867,6 +874,9 @@
       detectedTextBox.hidden = true;
       editTextBtn.hidden = true;
       refreshLiveStatuses();
+      extractedText.classList.remove("just-fixed");
+      void extractedText.offsetWidth;
+      extractedText.classList.add("just-fixed");
       jumpToEvidence("disclaimer");
       return true;
     }
@@ -914,10 +924,11 @@
       evidencePanel.className = "evidence-panel";
       evidencePanel.hidden = true;
       [
-        ["Expected", result.expected],
+        ["Rule", rule.raw],
         ["Measured", result.measured],
+        ["Required", result.expected],
         ["Method", result.method],
-        ["Confidence", rule.type === "disclaimer" ? "Deterministic match; source text is AI-assisted (OCR)" : "Deterministic"],
+        ["Decision", result.pass ? "PASS — clears the threshold" : "FAIL — below the threshold"],
       ].forEach(([key, value]) => {
         const dt = document.createElement("dt");
         dt.textContent = key;
@@ -929,10 +940,10 @@
 
       const evidenceBtn = document.createElement("button");
       evidenceBtn.className = "link-btn evidence-link";
-      evidenceBtn.textContent = "View evidence →";
+      evidenceBtn.textContent = "Why? →";
       evidenceBtn.addEventListener("click", () => {
         evidencePanel.hidden = !evidencePanel.hidden;
-        evidenceBtn.textContent = evidencePanel.hidden ? "View evidence →" : "Hide evidence";
+        evidenceBtn.textContent = evidencePanel.hidden ? "Why? →" : "Hide";
         if (!evidencePanel.hidden) jumpToEvidence(rule.type);
       });
 
@@ -968,8 +979,9 @@
     verdictBanner.className = "verdict-banner " + (allPass ? "pass" : "fail");
     verdictHeadline.textContent = allPass ? "✓ READY TO SHIP" : "✕ NOT READY TO SHIP";
     verdictSub.textContent = allPass
-      ? `${rules.length} / ${rules.length} checks passed`
-      : `${failCount} issue${failCount === 1 ? "" : "s"} need${failCount === 1 ? "s" : ""} attention — fix them below, then run the check again.`;
+      ? "Nothing blocking — this creative is ready to ship."
+      : `${failCount} issue${failCount === 1 ? "" : "s"} blocking this creative`;
+    verdictScore.textContent = `${passCount} / ${rules.length} passed`;
     verdictProgressBar.style.width = `${Math.round((passCount / rules.length) * 100)}%`;
 
     issueNav.innerHTML = "";
