@@ -62,6 +62,9 @@
   const validateChecklist = document.getElementById("validate-checklist");
   const stepResult = document.getElementById("step-result");
   const scoreEl = document.getElementById("score");
+  const verdictBanner = document.getElementById("verdict-banner");
+  const verdictHeadline = document.getElementById("verdict-headline");
+  const verdictSub = document.getElementById("verdict-sub");
   const reportEl = document.getElementById("report");
   const runHistoryEl = document.getElementById("run-history");
   const runHistoryList = document.getElementById("run-history-list");
@@ -923,10 +926,17 @@
     });
 
     const allPass = passCount === rules.length;
+    const failCount = rules.length - passCount;
     scoreEl.textContent = `${passCount} / ${rules.length} passed`;
     scoreEl.className = "score " + (allPass ? "all-pass" : "has-fail");
     stepResult.classList.toggle("result-pass", allPass);
     stepResult.classList.toggle("result-fail", !allPass);
+
+    verdictBanner.className = "verdict-banner " + (allPass ? "pass" : "fail");
+    verdictHeadline.textContent = allPass ? "✓ READY TO SHIP" : "✕ NOT READY TO SHIP";
+    verdictSub.textContent = allPass
+      ? `${rules.length} / ${rules.length} checks passed`
+      : `${failCount} issue${failCount === 1 ? "" : "s"} need${failCount === 1 ? "s" : ""} attention — fix them below, then run the check again.`;
     if (allPass) {
       scoreEl.classList.remove("celebrate");
       void scoreEl.offsetWidth;
@@ -1006,4 +1016,8 @@
   }
 
   runBtn.addEventListener("click", () => runCheck());
+
+  // Auto-compile the default policy so the first thing a visitor does
+  // is upload a creative, not paste rules into a textarea.
+  compile();
 })();

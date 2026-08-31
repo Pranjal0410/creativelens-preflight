@@ -33,10 +33,84 @@
   --warning-soft: #fffbeb;
   --warning-border: #fde68a;
 
+  --error: #b45309;
+  --error-soft: #fff1e6;
+
+  --surface-muted: #fafafa;
+
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0d;
+    --surface: #17171a;
+    --surface-muted: #1e1e22;
+    --border: #2a2a2f;
+    --border-strong: #3a3a41;
+    --text: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+
+    --accent: #818cf8;
+    --accent-soft: rgba(129, 140, 248, 0.16);
+    --accent-border: rgba(129, 140, 248, 0.4);
+
+    --accent2: #2dd4bf;
+    --accent2-soft: rgba(45, 212, 191, 0.16);
+    --accent2-border: rgba(45, 212, 191, 0.4);
+
+    --violet: #a78bfa;
+    --violet-soft: rgba(167, 139, 250, 0.16);
+    --violet-border: rgba(167, 139, 250, 0.4);
+
+    --success: #4ade80;
+    --success-soft: rgba(74, 222, 128, 0.14);
+    --success-border: rgba(74, 222, 128, 0.35);
+
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.14);
+    --danger-border: rgba(248, 113, 113, 0.35);
+
+    --warning: #fbbf24;
+    --warning-soft: rgba(251, 191, 36, 0.14);
+    --warning-border: rgba(251, 191, 36, 0.35);
+
+    --error: #fb923c;
+    --error-soft: rgba(251, 146, 60, 0.14);
+
+    color-scheme: dark;
+  }
+
+  body {
+    background-image:
+      radial-gradient(900px 480px at 50% -8%, rgba(129, 140, 248, 0.18), transparent 65%),
+      radial-gradient(700px 420px at 100% 0%, rgba(129, 140, 248, 0.08), transparent 60%),
+      radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+
+  .topbar {
+    background: rgba(11, 11, 13, 0.72);
+  }
+
+  .step {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 1px rgba(0, 0, 0, 0.3),
+      0 10px 26px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .status-pill.processing,
+  .status-pill.passed,
+  .status-pill.failed,
+  .status-pill.needs-input,
+  .score.all-pass,
+  .score.has-fail,
+  .report li.pass .report-icon,
+  .report li.fail .report-icon {
+    color: #0b0b0d;
+  }
 }
 
 * {
@@ -290,7 +364,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
-  background: #fcfcfc;
+  background: var(--surface-muted);
   margin-bottom: 0.9rem;
 }
 
@@ -301,7 +375,7 @@ a {
   line-height: 1.6;
   color: var(--text-tertiary);
   text-align: right;
-  background: #f4f4f5;
+  background: var(--surface-muted);
   border-right: 1px solid var(--border);
   user-select: none;
   white-space: pre;
@@ -324,7 +398,7 @@ a {
 
 #rules-input:focus {
   outline: none;
-  background: #fff;
+  background: var(--surface);
 }
 
 .fine-print {
@@ -573,7 +647,7 @@ a {
   background: var(--warning-soft);
   border: 1px solid var(--warning-border);
   font-size: 0.93rem;
-  color: #7c4a0a;
+  color: var(--warning);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -585,7 +659,7 @@ a {
 }
 
 .alert-muted {
-  background: #fafafa;
+  background: var(--surface-muted);
   border-color: var(--border);
   color: var(--text-secondary);
   display: block;
@@ -597,7 +671,7 @@ a {
   margin-top: 0.9rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fcfcfc;
+  background: var(--surface-muted);
   padding: 0.85rem 1rem;
 }
 
@@ -642,7 +716,7 @@ a {
   gap: 0.3rem 0.9rem;
   margin: 0.6rem 0 0;
   padding: 0.7rem 0.85rem;
-  background: #fafafa;
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.85rem;
@@ -726,8 +800,8 @@ a {
 }
 
 .severity-tag.error {
-  background: #fff1e6;
-  color: #b45309;
+  background: var(--error-soft);
+  color: var(--error);
 }
 
 .severity-tag.warning {
@@ -738,7 +812,7 @@ a {
 .report-recommendation {
   font-size: 0.85rem;
   color: var(--text);
-  background: #fafafa;
+  background: var(--surface-muted);
   border-left: 2px solid var(--accent-border);
   padding: 0.4rem 0.7rem;
   margin: 0.5rem 0 0;
@@ -1058,7 +1132,7 @@ a {
 .detected-text-box {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fcfcfc;
+  background: var(--surface-muted);
   padding: 0.7rem 0.85rem;
   font-size: 0.95rem;
   color: var(--text-secondary);
@@ -1167,6 +1241,43 @@ a {
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.verdict-banner {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  margin: -1.4rem -1.5rem 1.5rem;
+  border-radius: 14px 14px 0 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.verdict-headline {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.3rem;
+}
+
+.verdict-sub {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.verdict-banner.pass {
+  background: var(--success-soft);
+}
+
+.verdict-banner.pass .verdict-headline {
+  color: var(--success);
+}
+
+.verdict-banner.fail {
+  background: var(--danger-soft);
+}
+
+.verdict-banner.fail .verdict-headline {
+  color: var(--danger);
 }
 
 .result-head h2 {
