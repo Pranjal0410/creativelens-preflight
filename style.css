@@ -1237,6 +1237,63 @@ a {
   color: var(--text-secondary);
 }
 
+.verdict-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 0.9rem auto 0;
+  max-width: 280px;
+  overflow: hidden;
+}
+
+.verdict-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease, background-color 0.3s ease;
+  width: 0%;
+}
+
+.verdict-banner.pass .verdict-progress-bar {
+  background: var(--success);
+}
+
+.verdict-banner.fail .verdict-progress-bar {
+  background: var(--danger);
+}
+
+.issue-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.issue-chip {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.issue-chip.fail {
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+}
+
+.issue-chip.pass {
+  color: var(--success);
+  border-color: var(--success-border);
+  background: var(--success-soft);
+}
+
+.report-fix-btn {
+  margin-top: 0.5rem;
+}
+
 .verdict-banner.pass {
   background: var(--success-soft);
 }

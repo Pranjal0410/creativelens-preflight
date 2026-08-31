@@ -65,6 +65,8 @@
   const verdictBanner = document.getElementById("verdict-banner");
   const verdictHeadline = document.getElementById("verdict-headline");
   const verdictSub = document.getElementById("verdict-sub");
+  const verdictProgressBar = document.getElementById("verdict-progress-bar");
+  const issueNav = document.getElementById("issue-nav");
   const reportEl = document.getElementById("report");
   const runHistoryEl = document.getElementById("run-history");
   const runHistoryList = document.getElementById("run-history-list");
@@ -847,6 +849,31 @@
     return { pass: false, detail: "unrecognised rule", recommendation: null, expected: "—", measured: "—", method: "—" };
   }
 
+  function applyFix(rule) {
+    if (rule.type === "logo") {
+      const box = creativeWrap.getBoundingClientRect();
+      const size = logo.offsetWidth;
+      logo.style.left = `${Math.round((box.width - size) / 2)}px`;
+      logo.style.top = `${Math.round((box.height - size) / 2)}px`;
+      updateMarginReadout();
+      jumpToEvidence("logo");
+      return true;
+    }
+    if (rule.type === "disclaimer") {
+      const phrase = rule.keywords[0];
+      extractedText.value = `${extractedText.value.trim()} ${phrase}`.trim();
+      detectedTextBox.textContent = extractedText.value;
+      extractedText.hidden = false;
+      detectedTextBox.hidden = true;
+      editTextBtn.hidden = true;
+      refreshLiveStatuses();
+      jumpToEvidence("disclaimer");
+      return true;
+    }
+    jumpToEvidence(rule.type);
+    return false;
+  }
+
   function renderReport(rules, results) {
     reportEl.innerHTML = "";
     let passCount = 0;
@@ -916,6 +943,12 @@
         rec.className = "report-recommendation";
         rec.textContent = result.recommendation;
         body.appendChild(rec);
+
+        const fixBtn = document.createElement("button");
+        fixBtn.className = "btn btn-tiny report-fix-btn";
+        fixBtn.textContent = rule.type === "contrast" ? "Show me →" : "Fix this →";
+        fixBtn.addEventListener("click", () => applyFix(rule));
+        body.appendChild(fixBtn);
       }
       body.appendChild(source);
       body.appendChild(evidenceBtn);
@@ -937,6 +970,17 @@
     verdictSub.textContent = allPass
       ? `${rules.length} / ${rules.length} checks passed`
       : `${failCount} issue${failCount === 1 ? "" : "s"} need${failCount === 1 ? "s" : ""} attention — fix them below, then run the check again.`;
+    verdictProgressBar.style.width = `${Math.round((passCount / rules.length) * 100)}%`;
+
+    issueNav.innerHTML = "";
+    rules.forEach((rule, i) => {
+      const chip = document.createElement("button");
+      chip.className = `issue-chip ${results[i].pass ? "pass" : "fail"}`;
+      chip.textContent = `${results[i].pass ? "✓" : String(i + 1)} ${FRIENDLY_NAME[rule.type] || rule.type}`;
+      chip.addEventListener("click", () => highlightReportRow(i));
+      issueNav.appendChild(chip);
+    });
+
     if (allPass) {
       scoreEl.classList.remove("celebrate");
       void scoreEl.offsetWidth;
