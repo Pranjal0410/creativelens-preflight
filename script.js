@@ -58,6 +58,8 @@
   const pickHint = document.getElementById("pick-hint");
 
   const runBtn = document.getElementById("run-btn");
+  const validateLoading = document.getElementById("validate-loading");
+  const validateChecklist = document.getElementById("validate-checklist");
   const stepResult = document.getElementById("step-result");
   const scoreEl = document.getElementById("score");
   const reportEl = document.getElementById("report");
@@ -65,6 +67,13 @@
   const runHistoryList = document.getElementById("run-history-list");
   const runDetailsToggle = document.getElementById("run-details-toggle");
   const runDetails = document.getElementById("run-details");
+  const systemNotesToggle = document.getElementById("system-notes-toggle");
+  const systemNotesBody = document.getElementById("system-notes-body");
+
+  systemNotesToggle.addEventListener("click", () => {
+    systemNotesBody.hidden = !systemNotesBody.hidden;
+    systemNotesToggle.textContent = systemNotesBody.hidden ? "System notes →" : "Hide system notes";
+  });
 
   let compiledRules = [];
   let lastCompiledText = null;
@@ -131,6 +140,7 @@
     if (rule.type === "logo") {
       return [
         ["type", "geometric"],
+        ["target", "logo"],
         ["operator", "≥"],
         ["threshold", `${rule.threshold}px`],
         ["source", `"${rule.raw}"`],
@@ -140,6 +150,7 @@
     if (rule.type === "contrast") {
       return [
         ["type", "visual"],
+        ["target", "text / background"],
         ["operator", "≥"],
         ["threshold", `${rule.threshold}:1`],
         ["source", `"${rule.raw}"`],
@@ -148,6 +159,7 @@
     }
     return [
       ["type", "textual"],
+      ["target", "disclaimer text"],
       ["requirement", "phrase match"],
       ["matcher", rule.keywords.map((k) => `"${k}"`).join(", ")],
       ["source", `"${rule.raw}"`],
@@ -155,10 +167,10 @@
     ];
   }
 
-  function renderInspector(rule) {
+  function renderInspector(rule, index) {
     const title = document.createElement("p");
     title.className = "inspector-title";
-    title.textContent = rule.label;
+    title.textContent = `RULE-${String(index + 1).padStart(3, "0")} · ${rule.label}`;
 
     const dl = document.createElement("dl");
     buildInspectorFields(rule).forEach(([key, value]) => {
@@ -218,7 +230,7 @@
     if (inspectedIndex === null) {
       ruleInspector.hidden = true;
     } else {
-      renderInspector(compiledRules[index]);
+      renderInspector(compiledRules[index], index);
     }
   }
 
@@ -267,25 +279,41 @@
     return data.rules.map(normaliseRule);
   }
 
-  function setChecklistStep(activeIndex) {
-    [...loadingChecklist.children].forEach((li, i) => {
+  function setChecklistStep(el, activeIndex) {
+    [...el.children].forEach((li, i) => {
       li.className = i < activeIndex ? "item-done" : i === activeIndex ? "item-active" : "item-pending";
     });
   }
 
   function startLoadingCycle() {
     compileLoading.hidden = false;
-    setChecklistStep(0);
+    setChecklistStep(loadingChecklist, 0);
     const timers = [
-      setTimeout(() => setChecklistStep(1), 600),
-      setTimeout(() => setChecklistStep(2), 1800),
+      setTimeout(() => setChecklistStep(loadingChecklist, 1), 600),
+      setTimeout(() => setChecklistStep(loadingChecklist, 2), 1800),
     ];
     return { timers };
   }
 
   function stopLoadingCycle(cycle) {
     cycle.timers.forEach(clearTimeout);
-    setChecklistStep(3);
+    setChecklistStep(loadingChecklist, 3);
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function runValidateAnimation() {
+    validateLoading.hidden = false;
+    setChecklistStep(validateChecklist, 0);
+    await sleep(180);
+    setChecklistStep(validateChecklist, 1);
+    await sleep(180);
+    setChecklistStep(validateChecklist, 2);
+    await sleep(180);
+    setChecklistStep(validateChecklist, 3);
+    validateLoading.hidden = true;
   }
 
   function collapseRulesStep(summaryText) {
@@ -343,7 +371,8 @@
     renderChips(compiledRules, unsupported);
 
     if (compiledRules.length) {
-      collapseRulesStep(`${compiledRules.length} rule${compiledRules.length === 1 ? "" : "s"} compiled`);
+      const ambiguous = unsupported.length ? ` · ${unsupported.length} ambiguous` : "";
+      collapseRulesStep(`${compiledRules.length} rule${compiledRules.length === 1 ? "" : "s"} compiled${ambiguous}`);
       setPipelineStage("asset");
     } else {
       setStatus(rulesStatus, "failed", "no rules found");
@@ -964,6 +993,10 @@
     if (!imageReady) return;
     if (!compiledRules.length) await compile();
     if (!compiledRules.length) return;
+
+    runBtn.disabled = true;
+    await runValidateAnimation();
+    runBtn.disabled = false;
 
     const results = compiledRules.map(evaluateRule);
     renderReport(compiledRules, results);

@@ -162,6 +162,14 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
       </div>
 
       <button class="btn btn-primary btn-run" id="run-btn">Run check</button>
+      <div class="loading-line" id="validate-loading" hidden>
+        <div class="loading-track"><div class="loading-bar"></div></div>
+        <ul class="loading-checklist" id="validate-checklist">
+          <li data-step="0">Measuring geometry</li>
+          <li data-step="1">Evaluating rules</li>
+          <li data-step="2">Generating report</li>
+        </ul>
+      </div>
     </section>
 
     <!-- STEP 04 — RESULT -->
@@ -184,6 +192,8 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
 
   <section class="how-it-works">
     <div class="how-it-works-inner">
+      <button class="link-btn system-notes-toggle" id="system-notes-toggle">System notes →</button>
+      <div id="system-notes-body" hidden>
       <h2>How this works</h2>
       <p class="how-it-works-lede">AI where interpretation is needed. Deterministic checks where correctness matters.</p>
       <ol>
@@ -211,6 +221,7 @@ Text over the creative must hold a contrast ratio of at least 4.5:1.</textarea>
             <li><strong>Rule-level audit trail</strong><p>Persist each run so a validation decision can be reproduced later, not just viewed once.</p></li>
           </ul>
         </div>
+      </div>
       </div>
     </div>
   </section>

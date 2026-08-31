@@ -828,7 +828,15 @@ a {
 
 .how-it-works {
   border-top: 1px solid var(--border);
-  padding: 2.5rem 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.system-notes-toggle {
+  font-size: 0.85rem;
+}
+
+#system-notes-body {
+  margin-top: 1.5rem;
 }
 
 .how-it-works-inner {
